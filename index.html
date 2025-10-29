@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amadeus Flight Search Demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>✈️ Amadeus Flight Search</h1>
+
+    <form id="searchForm">
+      <input type="text" id="origin" placeholder="Origin (e.g. DXB)" required>
+      <input type="text" id="destination" placeholder="Destination (e.g. LHR)" required>
+      <input type="date" id="date" required>
+      <input type="number" id="adults" value="1" min="1" required>
+      <button type="submit">Search</button>
+    </form>
+
+    <div id="results"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
