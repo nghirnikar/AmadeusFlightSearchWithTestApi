@@ -1,7 +1,95 @@
-const priced = await fetch('https://<your-worker>.workers.dev/api/price', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ offer: selectedOffer })
-}).then(r => r.json());
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Review & Book</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="container">
+  <h2>Review & Book</h2>
+  <div id="offerBox"></div>
 
-// use priced.data.flightOffers[0] as the final offer to book
+  <h3>Passenger</h3>
+  <form id="paxForm">
+    <input id="firstName" placeholder="First name" required />
+    <input id="lastName" placeholder="Last name" required />
+    <input id="email" type="email" placeholder="Email" required />
+    <input id="dob" type="date" placeholder="DOB" />
+    <button type="submit">Book Flight</button>
+  </form>
+
+  <p id="msg"></p>
+
+  <h3>Cancel Booking</h3>
+  <input id="orderId" placeholder="Enter Order ID" />
+  <button id="cancelBtn">Cancel</button>
+  <p id="cancelMsg"></p>
+</div>
+
+<script>
+const API = "https://<your-worker-name>.workers.dev"; // replace
+
+let offer;
+document.addEventListener("DOMContentLoaded", async () => {
+  offer = JSON.parse(localStorage.getItem("selectedOffer"));
+  if (!offer) {
+    document.getElementById("offerBox").innerText = "No offer found!";
+    return;
+  }
+
+  document.getElementById("offerBox").innerText = "Checking price...";
+  const priced = await fetch(API + "/api/price", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ offer })
+  }).then(r => r.json());
+  const finalOffer = priced.data?.flightOffers?.[0] || offer;
+  localStorage.setItem("finalOffer", JSON.stringify(finalOffer));
+
+  document.getElementById("offerBox").innerHTML = `
+    <p>Fare confirmed</p>
+    <p>Total: ${finalOffer.price.total} ${finalOffer.price.currency}</p>
+  `;
+
+  // BOOK
+  document.getElementById("paxForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const pax = {
+      firstName: firstName.value,
+      lastName: lastName.value,
+      email: email.value,
+      dob: dob.value
+    };
+    document.getElementById("msg").innerText = "Booking...";
+    const res = await fetch(API + "/api/book", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ offer: finalOffer, passenger: pax })
+    });
+    const data = await res.json();
+    if (data?.data?.id) {
+      const orderId = data.data.id;
+      localStorage.setItem("orderId", orderId);
+      document.getElementById("msg").innerText = "Booked! Order ID: " + orderId;
+      document.getElementById("orderId").value = orderId;
+    } else {
+      document.getElementById("msg").innerText = "Booking failed.";
+    }
+  });
+
+  // CANCEL
+  document.getElementById("cancelBtn").addEventListener("click", async () => {
+    const id = document.getElementById("orderId").value || localStorage.getItem("orderId");
+    if (!id) return alert("Enter Order ID");
+    document.getElementById("cancelMsg").innerText = "Cancelling...";
+    const res = await fetch(API + "/api/cancel/" + id, { method: "DELETE" });
+    const data = await res.json();
+    document.getElementById("cancelMsg").innerText = data.status === "CANCELLED"
+      ? "✅ Cancelled successfully"
+      : "❌ Cancel failed";
+  });
+});
+</script>
+</body>
+</html>
