@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Review & Book</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="container">
+  <h2>Review your flight</h2>
+  <div id="offerBox"></div>
+
+  <h3>Passenger</h3>
+  <form id="paxForm">
+    <input id="firstName" placeholder="First name" required />
+    <input id="lastName"  placeholder="Last name" required />
+    <input id="email"     type="email" placeholder="Email" required />
+    <input id="phone"     placeholder="Phone (optional)" />
+    <input id="dob"       type="date" placeholder="DOB (YYYY-MM-DD)" />
+    <button type="submit">Book</button>
+  </form>
+
+  <p id="msg"></p>
+
+  <h3>Cancel Booking (later)</h3>
+  <input id="orderId" placeholder="Paste Order ID" />
+  <button id="btnCancel">Cancel Order</button>
+  <p id="cancelMsg"></p>
+</div>
+
+<script>
+const API = 'https://your-worker.workers.dev'; // <-- replace
+
+let selected;
+document.addEventListener('DOMContentLoaded', async () => {
+  const raw = localStorage.getItem('selectedOffer');
+  if (!raw) { document.getElementById('offerBox').innerText = 'No offer found.'; return; }
+  selected = JSON.parse(raw);
+
+  // 1) PRICE CHECK
+  document.getElementById('offerBox').innerText = 'Checking price...';
+  const priced = await fetch(API + '/price', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ offer: selected })
+  }).then(r => r.json());
+
+  // keep the priced offer for booking
+  const finalOffer = priced?.data?.flightOffers?.[0] || selected;
+  localStorage.setItem('selectedOfferPriced', JSON.stringify(finalOffer));
+
+  const price = finalOffer.price?.grandTotal || finalOffer.price?.total;
+  const curr  = finalOffer.price?.currency || '';
+  document.getElementById('offerBox').innerHTML = `
+    <div class="flight-card">
+      <p><strong>Fare confirmed.</strong></p>
+      <p>Total: ${price} ${curr}</p>
+    </div>
+  `;
+
+  // 2) BOOK ON SUBMIT
+  document.getElementById('paxForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const offerForBooking = JSON.parse(localStorage.getItem('selectedOfferPriced')) || selected;
+
+    const payload = {
+      offer: offerForBooking,
+      passenger: {
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName:  document.getElementById('lastName').value.trim(),
+        email:     document.getElementById('email').value.trim(),
+        phone:     document.getElementById('phone').value.trim(),
+        dob:       document.getElementById('dob').value || '1990-01-01'
+      }
+    };
+
+    document.getElementById('msg').innerText = 'Creating booking...';
+    const res = await fetch(API + '/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+
+    if (j?.data?.id) {
+      const orderId = j.data.id;              // Amadeus order id
+      const pnr = j.data?.associatedRecords?.[0]?.reference || '(PNR not returned in test)';
+      localStorage.setItem('lastOrderId', orderId);
+      document.getElementById('orderId').value = orderId;
+      document.getElementById('msg').innerHTML =
+        `✅ Booked!<br>Order ID: <b>${orderId}</b><br>PNR: <b>${pnr}</b>`;
+    } else {
+      document.getElementById('msg').innerText = '❌ Booking failed: ' + (j.error || JSON.stringify(j));
+    }
+  });
+
+  // 3) CANCEL
+  document.getElementById('btnCancel').addEventListener('click', async () => {
+    const id = document.getElementById('orderId').value.trim() || localStorage.getItem('lastOrderId');
+    if (!id) { document.getElementById('cancelMsg').innerText = 'Enter Order ID.'; return; }
+    document.getElementById('cancelMsg').innerText = 'Cancelling...';
+    const res = await fetch(API + '/cancel/' + encodeURIComponent(id), { method: 'DELETE' });
+    const j = await res.json();
+    document.getElementById('cancelMsg').innerText =
+      j.status === 'CANCELLED' ? '✅ Cancelled: ' + id : '❌ Cancel failed: ' + (j.error || JSON.stringify(j));
+  });
+});
+</script>
+</body>
+</html>

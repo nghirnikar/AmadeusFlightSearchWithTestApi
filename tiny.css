@@ -1,0 +1,4 @@
+.container{max-width:640px;margin:0 auto;padding:16px}
+.flight-card{border:1px solid #ddd;padding:12px;border-radius:8px;margin:12px 0}
+button{padding:10px 14px;border:0;border-radius:6px;cursor:pointer}
+input{display:block;width:100%;padding:10px;margin:8px 0}
