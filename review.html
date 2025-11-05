@@ -68,13 +68,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       body: JSON.stringify({ offer: finalOffer, passenger: pax })
     });
     const data = await res.json();
-    ata?.data?.id) {
+   if (data?.data?.id) {
   const orderId = data.data.id;
   const pnr = data.data.associatedRecords?.[0]?.reference || "PNR not available (sandbox)";
   localStorage.setItem("orderId", orderId);
   document.getElementById("msg").innerHTML =
     `✅ Booked!<br>Order ID: <b>${orderId}</b><br>PNR: <b>${pnr}</b>`;
   document.getElementById("orderId").value = orderId;
+} else {
+  console.error("Booking error:", data);
+  document.getElementById("msg").innerText = "❌ Booking failed: " + JSON.stringify(data);
+}
+
     }
   });
 
@@ -93,5 +98,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 </script>
 </body>
 </html>
+
 
 
