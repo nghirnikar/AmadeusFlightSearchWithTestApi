@@ -1,4 +1,4 @@
-const API = "https://<your-worker-name>.workers.dev"; // replace with your Cloudflare worker URL
+const API = "https://amadeus-proxy.nikhilcloudonline.workers.dev"; // replace with your Cloudflare worker URL
 
 document.getElementById("searchBtn").addEventListener("click", async () => {
   const origin = document.getElementById("origin").value.trim();
@@ -37,3 +37,4 @@ function selectOffer(i) {
   localStorage.setItem("selectedOffer", JSON.stringify(window._offers[i]));
   location.href = "review.html";
 }
+
