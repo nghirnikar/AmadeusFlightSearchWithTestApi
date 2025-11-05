@@ -1,26 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Amadeus Flight Search Demo</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <div class="container">
-    <h1>✈️ Amadeus Flight Search</h1>
+// Assume you already fetched flight offers into `offers`
+function renderResults(offers) {
+  const box = document.getElementById('results');
+  box.innerHTML = '';
+  window._offers = offers; // keep in memory
 
-    <form id="searchForm">
-      <input type="text" id="origin" placeholder="Origin (e.g. DXB)" required>
-      <input type="text" id="destination" placeholder="Destination (e.g. LHR)" required>
-      <input type="date" id="date" required>
-      <input type="number" id="adults" value="1" min="1" required>
-      <button type="submit">Search</button>
-    </form>
+  offers.forEach((offer, i) => {
+    const lastSeg = offer.itineraries[0].segments.at(-1);
+    const card = document.createElement('div');
+    card.className = 'flight-card';
+    card.innerHTML = `
+      <p>${offer.itineraries[0].segments[0].departure.iataCode} → ${lastSeg.arrival.iataCode}</p>
+      <p>Total: ${offer.price.total} ${offer.price.currency}</p>
+      <button onclick="selectOffer(${i})">Select</button>
+    `;
+    box.appendChild(card);
+  });
+}
 
-    <div id="results"></div>
-  </div>
+function selectOffer(i) {
+  localStorage.setItem('selectedOffer', JSON.stringify(window._offers[i]));
+  location.href = 'review.html';
+}
 
-  <script src="script.js"></script>
-</body>
-</html>
