@@ -10,12 +10,12 @@
   <h2>Review & Book</h2>
   <div id="offerBox"></div>
 
-  <h3>Passenger</h3>
+  <h3>Passenger Details</h3>
   <form id="paxForm">
     <input id="firstName" placeholder="First name" required />
     <input id="lastName" placeholder="Last name" required />
     <input id="email" type="email" placeholder="Email" required />
-    <input id="dob" type="date" placeholder="DOB" />
+    <input id="dob" type="date" placeholder="Date of Birth" />
     <button type="submit">Book Flight</button>
   </form>
 
@@ -28,28 +28,30 @@
 </div>
 
 <script>
-const API = "https://amadeus-proxy.nikhilcloudonline.workers.dev"; // replace
+const API = "https://amadeus-proxy.nikhilcloudonline.workers.dev"; // Your Cloudflare Worker
 
 let offer;
+
 document.addEventListener("DOMContentLoaded", async () => {
   offer = JSON.parse(localStorage.getItem("selectedOffer"));
   if (!offer) {
-    document.getElementById("offerBox").innerText = "No offer found!";
+    document.getElementById("offerBox").innerText = "❌ No offer found!";
     return;
   }
 
-  document.getElementById("offerBox").innerText = "Checking price...";
+  document.getElementById("offerBox").innerText = "Checking fare...";
   const priced = await fetch(API + "/api/price", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ offer })
   }).then(r => r.json());
+
   const finalOffer = priced.data?.flightOffers?.[0] || offer;
   localStorage.setItem("finalOffer", JSON.stringify(finalOffer));
 
   document.getElementById("offerBox").innerHTML = `
-    <p>Fare confirmed</p>
-    <p>Total: ${finalOffer.price.total} ${finalOffer.price.currency}</p>
+    <p>✅ Fare confirmed</p>
+    <p><strong>Total:</strong> ${finalOffer.price.total} ${finalOffer.price.currency}</p>
   `;
 
   // BOOK
@@ -59,45 +61,4 @@ document.addEventListener("DOMContentLoaded", async () => {
       firstName: firstName.value,
       lastName: lastName.value,
       email: email.value,
-      dob: dob.value
-    };
-    document.getElementById("msg").innerText = "Booking...";
-    const res = await fetch(API + "/api/book", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ offer: finalOffer, passenger: pax })
-    });
-    const data = await res.json();
-   if (data?.data?.id) {
-  const orderId = data.data.id;
-  const pnr = data.data.associatedRecords?.[0]?.reference || "PNR not available (sandbox)";
-  localStorage.setItem("orderId", orderId);
-  document.getElementById("msg").innerHTML =
-    `✅ Booked!<br>Order ID: <b>${orderId}</b><br>PNR: <b>${pnr}</b>`;
-  document.getElementById("orderId").value = orderId;
-} else {
-  console.error("Booking error:", data);
-  document.getElementById("msg").innerText = "❌ Booking failed: " + JSON.stringify(data);
-}
-
-    }
-  });
-
-  // CANCEL
-  document.getElementById("cancelBtn").addEventListener("click", async () => {
-    const id = document.getElementById("orderId").value || localStorage.getItem("orderId");
-    if (!id) return alert("Enter Order ID");
-    document.getElementById("cancelMsg").innerText = "Cancelling...";
-    const res = await fetch(API + "/api/cancel/" + id, { method: "DELETE" });
-    const data = await res.json();
-    document.getElementById("cancelMsg").innerText = data.status === "CANCELLED"
-      ? "✅ Cancelled successfully"
-      : "❌ Cancel failed";
-  });
-});
-</script>
-</body>
-</html>
-
-
-
+      dob:
