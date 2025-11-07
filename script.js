@@ -2,175 +2,121 @@
 
 // CHANGE THIS to your Worker URL (no trailing slash)
 const API_BASE = "https://amadeus-proxy.nikhilcloudonline.workers.dev";
+// === DOM ===
+const originInput = document.getElementById("origin");
+const destInput = document.getElementById("destination");
+const depInput = document.getElementById("departureDate");
+const searchBtn = document.getElementById("searchBtn");
+const resultsDiv = document.getElementById("results");
 
-const originInput = document.querySelector('#origin');
-const destInput = document.querySelector('#destination');
-const dateInput = document.querySelector('#departDate');
-const returnInput = document.querySelector('#returnDate'); // optional
-const adultsInput = document.querySelector('#adults');
-const tripTypeSelect = document.querySelector('#tripType');
-const resultsDiv = document.querySelector('#results');
+// Autocomplete lists (<ul> in your HTML)
+const originList = document.getElementById("origin-results");
+const destList = document.getElementById("destination-results");
 
-function toISO(dateStr) {
-  // accepts dd/mm/yyyy or yyyy-mm-dd
-  if (!dateStr) return "";
-  if (dateStr.includes("/")) {
-    const [d, m, y] = dateStr.split("/").map(s => s.trim());
-    return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
-  }
-  return dateStr; // assume already ISO
+// === Helpers ===
+function clearNode(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function showError(msg) { resultsDiv.innerHTML = `<div class="error">${msg}</div>`; }
+function createLi(text, code, targetInput, listEl) {
+  const li = document.createElement("li");
+  li.textContent = text;
+  li.tabIndex = 0;
+  li.className = "ac-item";
+  li.addEventListener("click", () => {
+    targetInput.value = code;
+    clearNode(listEl);
+  });
+  return li;
 }
 
-async function search() {
-  resultsDiv.innerHTML = "Searching…";
+let acTimer = null;
+async function autocomplete(query, listEl) {
+  clearNode(listEl);
+  if (!query || query.length < 2) return;
+
+  const u = new URL(API_BASE + "/api/locations");
+  u.searchParams.set("keyword", query);
+
+  try {
+    const r = await fetch(u, { mode: "cors" });
+    const j = await r.json();
+    const rows = (j.data || []).map(x => {
+      const code = x.iataCode || x.address?.cityCode || "";
+      const name = x.name || x.detailedName || "";
+      if (!code) return null;
+      return { code, name };
+    }).filter(Boolean);
+
+    rows.forEach(it => {
+      listEl.appendChild(createLi(`${it.code} — ${it.name}`, it.code, listEl === originList ? originInput : destInput, listEl));
+    });
+  } catch (e) { /* silent */ }
+}
+
+// Debounced handlers
+function hookupAutocomplete(inputEl, listEl) {
+  inputEl.addEventListener("input", () => {
+    clearTimeout(acTimer);
+    const q = inputEl.value.trim();
+    acTimer = setTimeout(() => autocomplete(q, listEl), 250);
+  });
+  inputEl.addEventListener("blur", () => setTimeout(() => clearNode(listEl), 150));
+}
+
+hookupAutocomplete(originInput, originList);
+hookupAutocomplete(destInput, destList);
+
+// === Search ===
+async function doSearch() {
+  clearNode(resultsDiv);
+  resultsDiv.textContent = "Searching…";
 
   const origin = originInput.value.trim().toUpperCase();
   const dest = destInput.value.trim().toUpperCase();
-  const depISO = toISO(dateInput.value);
-  const retISO = tripTypeSelect.value === "return" ? toISO(returnInput.value) : "";
+  const depDate = depInput.value; // <input type="date"> already yyyy-mm-dd
+
+  if (!origin || !dest || !depDate) {
+    showError("Please fill origin, destination, and date.");
+    return;
+  }
 
   const u = new URL(API_BASE + "/api/search");
   u.searchParams.set("originLocationCode", origin);
   u.searchParams.set("destinationLocationCode", dest);
-  u.searchParams.set("departureDate", depISO);
-  u.searchParams.set("adults", adultsInput.value || "1");
-  if (retISO) u.searchParams.set("returnDate", retISO);
-
-  const r = await fetch(u, { mode: "cors" });
-  const j = await r.json();
-
-  if (!r.ok || !j.data) {
-    resultsDiv.innerHTML = `<div class="error">No results. ${j.error || ""}</div>`;
-    return;
-  }
-
-  // Render the first 10 offers
-  resultsDiv.innerHTML = j.data.map((offer) => {
-    const itin = offer.itineraries[0];
-    const seg0 = itin.segments[0];
-    const lastSeg = itin.segments[itin.segments.length - 1];
-    const price = offer.price?.total || "?";
-    return `
-      <div class="flight-card">
-        <div><strong>${seg0.departure.iataCode}</strong> → <strong>${lastSeg.arrival.iataCode}</strong></div>
-        <div>${seg0.departure.at} → ${lastSeg.arrival.at}</div>
-        <div>Duration: ${itin.duration.replace("PT","").toLowerCase()}</div>
-        <div><b>Price:</b> ${price}</div>
-      </div>`;
-  }).join("");
-}
-
-document.querySelector('#searchBtn').addEventListener('click', (e) => {
-  e.preventDefault();
-  search();
-});
-
-// --- Airport autocomplete (calls worker /api/locations)
-function attachAutocomplete(inputEl) {
-  let box;
-  let timer;
-
-  function ensureBox() {
-    if (!box) {
-      box = document.createElement('div');
-      box.className = 'autocomplete-box';
-      inputEl.parentNode.appendChild(box);
-    }
-    box.innerHTML = "";
-    box.style.display = "block";
-  }
-  function hideBox() { if (box) box.style.display = "none"; }
-
-  inputEl.addEventListener('input', () => {
-    const q = inputEl.value.trim();
-    clearTimeout(timer);
-    if (q.length < 2) { hideBox(); return; }
-    timer = setTimeout(async () => {
-      ensureBox();
-      const u = new URL(API_BASE + "/api/locations");
-      u.searchParams.set("keyword", q);
-      const r = await fetch(u, { mode: "cors" });
-      const j = await r.json();
-      const items = (j.data || []).map(x => {
-        const code = x.iataCode || x.address?.cityCode || "";
-        const name = x.name || x.detailedName || "";
-        return { code, name };
-      }).filter(x => x.code);
-
-      box.innerHTML = items.map(it =>
-        `<div class="item" data-code="${it.code}">${it.code} — ${it.name}</div>`
-      ).join("");
-
-      box.querySelectorAll('.item').forEach(el => {
-        el.addEventListener('click', () => {
-          inputEl.value = el.getAttribute('data-code');
-          hideBox();
-        });
-      });
-    }, 250); // debounce
-  });
-
-  inputEl.addEventListener('blur', () => setTimeout(hideBox, 200));
-}
-
-attachAutocomplete(originInput);
-attachAutocomplete(destInput);
-
-// Trip type toggle
-tripTypeSelect.addEventListener('change', () => {
-  document.querySelector('#returnRow').style.display =
-    tripTypeSelect.value === 'return' ? 'block' : 'none';
-});
-
-
-document.getElementById("searchBtn").addEventListener("click", async () => {
-  const origin = document.getElementById("origin").value.trim().toUpperCase();
-  const dest = document.getElementById("destination").value.trim().toUpperCase();
-  const date = document.getElementById("date").value;
-
-  if (!origin || !dest || !date) return alert("Please fill in all fields.");
-
-  const url = `${API}/api/search?origin=${origin}&destination=${dest}&date=${date}`;
-  document.getElementById("results").innerText = "🔍 Searching for flights...";
+  u.searchParams.set("departureDate", depDate);
+  u.searchParams.set("adults", "1");
+  // (Optional) add returnDate, currencyCode, max, etc.
 
   try {
-    const res = await fetch(url);
-    const data = await res.json();
+    const r = await fetch(u, { mode: "cors" });
+    const j = await r.json();
 
-    if (!data.data || data.data.length === 0) {
-      document.getElementById("results").innerText = "❌ No flights found.";
+    if (!r.ok || !j.data || !Array.isArray(j.data) || j.data.length === 0) {
+      showError("No results found for those inputs.");
       return;
     }
 
-    renderResults(data.data);
-  } catch (err) {
-    console.error("Search failed:", err);
-    document.getElementById("results").innerText = "❌ Error fetching flights.";
+    resultsDiv.innerHTML = j.data.map(offer => {
+      const itin = offer.itineraries?.[0];
+      if (!itin) return "";
+      const seg0 = itin.segments?.[0];
+      const last = itin.segments?.[itin.segments.length - 1];
+      const price = offer.price?.total ?? "?";
+      const dur = (itin.duration || "").replace("PT","").toLowerCase();
+
+      return `
+        <div class="flight-card">
+          <div><strong>${seg0?.departure?.iataCode || "?"}</strong> → <strong>${last?.arrival?.iataCode || "?"}</strong></div>
+          <div>${seg0?.departure?.at || "?"} → ${last?.arrival?.at || "?"}</div>
+          <div>Duration: ${dur}</div>
+          <div><b>Price:</b> ${price}</div>
+        </div>`;
+    }).join("");
+
+  } catch (e) {
+    showError("Could not fetch results. Check Worker URL & secrets.");
   }
-});
-
-function renderResults(offers) {
-  const box = document.getElementById("results");
-  box.innerHTML = "";
-  window._offers = offers;
-
-  offers.forEach((offer, i) => {
-    const lastSeg = offer.itineraries[0].segments.at(-1);
-    const div = document.createElement("div");
-    div.className = "flight-card";
-
-    div.innerHTML = `
-      <p><strong>${offer.itineraries[0].segments[0].departure.iataCode}</strong> → <strong>${lastSeg.arrival.iataCode}</strong></p>
-      <p>✈️ Total Price: <strong>${offer.price.total} ${offer.price.currency}</strong></p>
-      <button onclick="selectOffer(${i})">Select</button>
-    `;
-
-    box.appendChild(div);
-  });
 }
 
-function selectOffer(i) {
-  localStorage.setItem("selectedOffer", JSON.stringify(window._offers[i]));
-  location.href = "review.html";
-}
+searchBtn.addEventListener("click", (e) => { e.preventDefault(); doSearch(); });
+
 
