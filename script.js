@@ -8,10 +8,10 @@ const depInput     = document.getElementById("departureDate");
 const resultsDiv   = document.getElementById("results");
 
 // Debug line
-const dbg = document.createElement("div");
-dbg.style.cssText = "margin:8px 0;color:#555;font-size:12px";
-dbg.id = "debug";
-resultsDiv.parentNode.insertBefore(dbg, resultsDiv);
+//const dbg = document.createElement("div");
+//dbg.style.cssText = "margin:8px 0;color:#555;font-size:12px";
+//dbg.id = "debug";
+//resultsDiv.parentNode.insertBefore(dbg, resultsDiv);
 
 function show(msg, isErr=false){ 
   resultsDiv.innerHTML = `<div style="color:${isErr?'#b00020':'#111'}">${msg}</div>`; 
@@ -21,12 +21,12 @@ function setDbg(t){
 }
 
 // Ping test
-async function ping() {
-  try {
-    const r = await fetch(`${API_BASE}/api/search?origin=DXB&destination=LHR&date=2025-12-05`, {mode:"cors"});
-    setDbg(`PING ${API_BASE}: HTTP ${r.status}`);
-  } catch (e) {
-    setDbg(`PING failed: ${e.message}`);
+// async function ping() {
+//   try {
+  //   const r = await fetch(`${API_BASE}/api/search?origin=DXB&destination=LHR&date=2025-12-05`, {mode:"cors"});
+//     setDbg(`PING ${API_BASE}: HTTP ${r.status}`);
+//   } catch (e) {
+//     setDbg(`PING failed: ${e.message}`);
   }
 }
 ping();
@@ -82,3 +82,4 @@ document.getElementById("searchBtn").addEventListener("click", async (e)=>{
     show(`Fetch error: ${e.message}`, true);
   }
 });
+
