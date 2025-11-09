@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Amadeus Flight Search</title>
-
   <style>
     body {
       font-family: "Segoe UI", Arial, sans-serif;
@@ -14,7 +13,7 @@
     }
 
     .container {
-      max-width: 600px;
+      max-width: 650px;
       margin: 50px auto;
       background: #fff;
       border-radius: 12px;
@@ -24,7 +23,6 @@
 
     h2 {
       text-align: center;
-      margin-top: 0;
       color: #111;
     }
 
@@ -78,6 +76,30 @@
       background: #fefefe;
     }
 
+    .autocomplete-results {
+      list-style: none;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-top: -8px;
+      margin-bottom: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      padding-left: 0;
+      position: absolute;
+      z-index: 10;
+      width: calc(100% - 60px);
+    }
+
+    .autocomplete-results li {
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+
+    .autocomplete-results li:hover {
+      background: #f0f8ff;
+    }
+
     #orderResult {
       margin-top: 10px;
       font-size: 14px;
@@ -90,20 +112,31 @@
 
     @media(max-width:600px){
       .container{margin:20px;padding:20px;}
+      .autocomplete-results{width:calc(100% - 40px);}
     }
   </style>
 </head>
-
 <body>
   <div class="container">
     <h2>Search Flights</h2>
 
-    <div>
+    <div style="position:relative;">
       <input id="origin" placeholder="From (e.g. DXB)" autocomplete="off" />
-      <input id="destination" placeholder="To (e.g. LHR)" autocomplete="off" />
-      <input id="departureDate" type="date" />
-      <button id="searchBtn">Search</button>
+      <ul id="origin-results" class="autocomplete-results"></ul>
     </div>
+
+    <div style="position:relative;">
+      <input id="destination" placeholder="To (e.g. LHR)" autocomplete="off" />
+      <ul id="destination-results" class="autocomplete-results"></ul>
+    </div>
+
+    <label>Departure Date:</label>
+    <input id="departureDate" type="date" />
+
+    <label>Return Date (optional):</label>
+    <input id="returnDate" type="date" />
+
+    <button id="searchBtn">Search Flights</button>
 
     <h3>Results</h3>
     <div id="results"></div>
