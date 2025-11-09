@@ -1,7 +1,5 @@
-// ===== CONFIG =====
 const API_BASE = "https://amadeus-proxy.nikhilcloudonline.workers.dev"; // no trailing slash
 
-// ===== DOM ELEMENTS =====
 const originInput  = document.getElementById("origin");
 const destInput    = document.getElementById("destination");
 const depInput     = document.getElementById("departureDate");
@@ -80,6 +78,7 @@ let selectedOffer = null;
 
 // ===== DISPLAY RESULTS =====
 function renderResults(data) {
+  window.lastResults = data;
   resultsDiv.innerHTML = data.map((offer, i) => {
     const itin = offer.itineraries?.[0];
     const seg0 = itin?.segments?.[0];
@@ -87,22 +86,26 @@ function renderResults(data) {
     const price = offer.price?.total ?? "?";
     const curr  = offer.price?.currency ?? "";
     return `
-      <div class="flight-card">
+      <div class="flight-card" data-index="${i}">
         <div><b>${seg0?.departure?.iataCode}</b> → <b>${last?.arrival?.iataCode}</b> (${seg0?.carrierCode})</div>
         <div>${seg0?.departure?.at?.slice(0,16)} → ${last?.arrival?.at?.slice(0,16)}</div>
         <div>Duration: ${(itin.duration||"").replace("PT","").toLowerCase()}</div>
         <div><b>Price:</b> ${price} ${curr}</div>
-        <button onclick="selectOffer(${i})" style="margin-top:6px;padding:6px 10px;background:#007bff;color:#fff;border:0;border-radius:4px;cursor:pointer;">Select</button>
+        <button class="select-btn">Select</button>
       </div>`;
   }).join("");
-  window.lastResults = data;
 }
 
-// ===== SELECT OFFER =====
-window.selectOffer = function(i){
-  selectedOffer = window.lastResults[i];
+// ===== SELECT EVENT HANDLER =====
+resultsDiv.addEventListener("click", (e)=>{
+  if (!e.target.classList.contains("select-btn")) return;
+  const card = e.target.closest(".flight-card");
+  const idx = parseInt(card.dataset.index);
+  if (isNaN(idx)) return;
+  selectedOffer = window.lastResults[idx];
   const price = selectedOffer.price?.total;
   const curr  = selectedOffer.price?.currency;
+
   previewDiv.innerHTML = `
     <div style="border:2px solid #007bff;padding:12px;border-radius:10px;margin-top:15px;">
       <h4>Selected Flight</h4>
@@ -114,10 +117,10 @@ window.selectOffer = function(i){
       </div>
       <div id="orderResult" style="margin-top:10px;font-size:14px;"></div>
     </div>`;
-};
+});
 
-// ===== EVENT HANDLERS =====
-document.addEventListener("click", async e=>{
+// ===== BUTTON HANDLERS =====
+document.addEventListener("click", async (e)=>{
   // --- BOOK ---
   if (e.target.id === "bookBtn" && selectedOffer){
     e.target.disabled = true;
