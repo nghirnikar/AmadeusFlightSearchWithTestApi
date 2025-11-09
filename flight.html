@@ -1,168 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Flight Booking - NikGProd</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f5f7fb;
-    padding: 30px;
-  }
-  .card {
-    background: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    max-width: 600px;
-    margin: 0 auto;
-  }
-  h2 { text-align: center; }
-  .flight-info {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-    background: #fafafa;
-  }
-  label { display: block; margin-top: 10px; font-weight: bold; }
-  input {
-    width: 100%;
-    padding: 8px;
-    margin-top: 4px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-  }
-  button {
-    padding: 10px 18px;
-    margin-top: 20px;
-    border: 0;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 15px;
-  }
-  #bookBtn { background: #28a745; color: #fff; }
-  #cancelBtn { background: #dc3545; color: #fff; margin-left: 10px; }
-  .status {
-    margin-top: 20px;
-    font-weight: bold;
-    text-align: center;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Flight Details & Booking</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    input {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .btn {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #fff;
+      margin-top: 10px;
+    }
+    #bookBtn { background: #007bff; }
+    #cancelBtn { background: #dc3545; }
+  </style>
 </head>
 <body>
+  <div class="container" id="flightDetails">
+    <h2>Flight Details</h2>
+    <div id="flightInfo"></div>
 
-<div class="card">
-  <h2>Flight Details & Booking</h2>
-  <div id="flightDetails" class="flight-info">Loading flight...</div>
+    <h3>Traveler Information</h3>
+    <input id="fname" placeholder="First Name" required>
+    <input id="lname" placeholder="Last Name" required>
+    <input id="email" placeholder="Email" required>
+    <label>Date of Birth:</label>
+    <input id="dob" type="date" required>
 
-  <form id="travelerForm">
-    <label>First Name</label>
-    <input id="firstName" required />
+    <button id="bookBtn" class="btn">Book Now</button>
+    <button id="cancelBtn" class="btn">Cancel Booking</button>
 
-    <label>Last Name</label>
-    <input id="lastName" required />
+    <div id="msg" style="margin-top:15px;"></div>
+  </div>
 
-    <label>Email</label>
-    <input id="email" type="email" required />
+  <script>
+    // ============ CONFIG ============
+    const API_BASE = "https://amadeus-proxy.nikhilcloudonline.workers.dev";
+    const offer = JSON.parse(localStorage.getItem("selectedOffer") || "{}");
+    const flightInfoDiv = document.getElementById("flightInfo");
+    const msgDiv = document.getElementById("msg");
 
-    <label>Date of Birth</label>
-    <input id="dob" type="date" required />
+    // ============ DISPLAY SELECTED FLIGHT ============
+    if (!offer.itineraries) {
+      flightInfoDiv.innerHTML = "<p style='color:red;'>No flight selected.</p>";
+    } else {
+      const itin = offer.itineraries[0];
+      const seg0 = itin.segments[0];
+      const last = itin.segments[itin.segments.length - 1];
+      const dep = seg0.departure.at.replace("T", " ");
+      const arr = last.arrival.at.replace("T", " ");
+      const price = offer.price.total + " " + offer.price.currency;
 
-    <button id="bookBtn" type="submit">Book Now</button>
-    <button id="cancelBtn" type="button">Cancel Order</button>
-  </form>
-
-  <div id="status" class="status"></div>
-</div>
-
-<script>
-const API_BASE = "https://amadeus-proxy.nikhilcloudonline.workers.dev";
-const flightDetailsDiv = document.getElementById("flightDetails");
-const form = document.getElementById("travelerForm");
-const statusDiv = document.getElementById("status");
-const cancelBtn = document.getElementById("cancelBtn");
-
-let selectedOffer = null;
-let orderId = null;
-
-function loadFlight() {
-  const stored = localStorage.getItem("selectedOffer");
-  if (!stored) {
-    flightDetailsDiv.innerHTML = "<p style='color:red'>No flight selected.</p>";
-    return;
-  }
-  selectedOffer = JSON.parse(stored);
-  const itin = selectedOffer.itineraries?.[0];
-  const seg0 = itin?.segments?.[0];
-  const last = itin?.segments?.[itin.segments.length-1];
-  const price = selectedOffer.price?.total;
-  const curr = selectedOffer.price?.currency;
-
-  flightDetailsDiv.innerHTML = `
-    <b>${seg0.departure.iataCode}</b> → <b>${last.arrival.iataCode}</b> (${seg0.carrierCode})<br>
-    ${seg0.departure.at.replace("T"," ")} → ${last.arrival.at.replace("T"," ")}<br>
-    Duration: ${(itin.duration||"").replace("PT","").toLowerCase()}<br>
-    <b>Total Price:</b> ${price} ${curr}
-  `;
-}
-loadFlight();
-
-// --- BOOKING ---
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!selectedOffer) return;
-
-  const passenger = {
-    firstName: document.getElementById("firstName").value.trim(),
-    lastName: document.getElementById("lastName").value.trim(),
-    email: document.getElementById("email").value.trim(),
-    dob: document.getElementById("dob").value
-  };
-
-  statusDiv.innerHTML = "Booking flight...";
-
-  try {
-    const res = await fetch(API_BASE + "/api/book", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ offer: selectedOffer, passenger })
-    });
-    const text = await res.text();
-    let j; try { j = JSON.parse(text); } catch { j = { raw: text }; }
-
-    if (!res.ok) {
-      statusDiv.innerHTML = "Booking failed: " + (j.error || j.title || res.status);
-      return;
+      flightInfoDiv.innerHTML = `
+        <p><b>${seg0.departure.iataCode}</b> → <b>${last.arrival.iataCode}</b> (${seg0.carrierCode})</p>
+        <p>${dep} → ${arr}</p>
+        <p>Duration: ${itin.duration}</p>
+        <p><b>Total Price:</b> ${price}</p>
+      `;
     }
 
-    orderId = j.data?.id || "(no id)";
-    const nameDisplay = `${passenger.firstName} ${passenger.lastName}`;
-    statusDiv.innerHTML = `
-      ✅ Booking confirmed!<br>
-      Traveler: <b>${nameDisplay}</b><br>
-      Order ID: <b>${orderId}</b>
-    `;
-  } catch (err) {
-    statusDiv.innerHTML = "Error: " + err.message;
-  }
-});
+    // ============ BOOKING FUNCTION ============
+    document.getElementById("bookBtn").onclick = async () => {
+      const pax = {
+        firstName: fname.value.trim(),
+        lastName: lname.value.trim(),
+        email: email.value.trim(),
+        dob: dob.value.trim(),
+      };
 
-// --- CANCEL ---
-cancelBtn.addEventListener("click", async () => {
-  if (!orderId) {
-    statusDiv.innerHTML = "No order to cancel yet.";
-    return;
-  }
-  statusDiv.innerHTML = "Cancelling...";
-  try {
-    const res = await fetch(API_BASE + "/api/cancel/" + orderId, { method: "DELETE" });
-    const j = await res.json();
-    statusDiv.innerHTML = `❌ Order cancelled.<br>Status: ${j.status}`;
-  } catch (err) {
-    statusDiv.innerHTML = "Cancel error: " + err.message;
-  }
-});
-</script>
+      if (!pax.firstName || !pax.lastName || !pax.email || !pax.dob) {
+        msgDiv.innerHTML = "<p style='color:red;'>Please fill all traveler fields.</p>";
+        return;
+      }
+
+      msgDiv.innerHTML = "<p>Processing booking...</p>";
+
+      try {
+        const res = await fetch(`${API_BASE}/api/book`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ offer, passenger: pax })
+        });
+
+        const text = await res.text();
+        if (res.ok) {
+          localStorage.setItem("selectedOffer", JSON.stringify(offer));
+          msgDiv.innerHTML = "<p style='color:green;'>✅ Booking successful! Redirecting to payment...</p>";
+          setTimeout(() => {
+            window.location.href = "payment.html";
+          }, 1500);
+        } else {
+          msgDiv.innerHTML = `<p style='color:red;'>Booking failed.<br>${text}</p>`;
+        }
+      } catch (err) {
+        msgDiv.innerHTML = `<p style='color:red;'>Error: ${err.message}</p>`;
+      }
+    };
+
+    // ============ CANCEL BOOKING (SIMULATED) ============
+    document.getElementById("cancelBtn").onclick = async () => {
+      msgDiv.innerHTML = "<p>Cancelling booking...</p>";
+      await fetch(`${API_BASE}/api/cancel`, { method: "POST" });
+      msgDiv.innerHTML = "<p style='color:red;'>Booking cancelled.</p>";
+    };
+  </script>
 </body>
 </html>
