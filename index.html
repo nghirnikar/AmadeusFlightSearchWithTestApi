@@ -2,31 +2,113 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Amadeus Flight Search</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      padding: 30px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-top: 0;
+      color: #111;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    h3 {
+      margin-top: 24px;
+      color: #222;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 6px;
+    }
+
+    .flight-card {
+      border: 1px solid #ddd;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      background: #fafafa;
+      transition: transform 0.15s ease;
+    }
+
+    .flight-card:hover {
+      transform: translateY(-3px);
+      background: #f0f8ff;
+    }
+
+    #preview {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fefefe;
+    }
+
+    #orderResult {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+
+    @media(max-width:600px){
+      .container{margin:20px;padding:20px;}
+    }
+  </style>
 </head>
+
 <body>
   <div class="container">
     <h2>Search Flights</h2>
 
-    <div class="input-group">
+    <div>
       <input id="origin" placeholder="From (e.g. DXB)" autocomplete="off" />
-      <ul id="origin-results" class="autocomplete-results"></ul>
-    </div>
-
-    <div class="input-group">
       <input id="destination" placeholder="To (e.g. LHR)" autocomplete="off" />
-      <ul id="destination-results" class="autocomplete-results"></ul>
-    </div>
-
-    <div class="input-group">
       <input id="departureDate" type="date" />
+      <button id="searchBtn">Search</button>
     </div>
-
-    <button id="searchBtn">Search</button>
 
     <h3>Results</h3>
     <div id="results"></div>
+
+    <div id="preview"></div>
   </div>
 
   <script src="script.js"></script>
