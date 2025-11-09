@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Payment</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container" id="paymentBox">
+    <h2>Payment</h2>
+    <p id="amountInfo"></p>
+
+    <input id="cardName" placeholder="Name on Card">
+    <input id="cardNumber" placeholder="Card Number (16 digits)">
+    <input id="cvv" placeholder="CVV" maxlength="3" style="width:100px">
+    <input id="exp" placeholder="MM/YY" maxlength="5" style="width:100px">
+    <button id="payBtn">Pay Now</button>
+
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    const API_BASE = "https://amadeus-proxy.nikhilcloudonline.workers.dev";
+    const offer = JSON.parse(localStorage.getItem("selectedOffer") || "{}");
+    const total = offer.price?.total || "0";
+    const currency = offer.price?.currency || "EUR";
+    document.getElementById("amountInfo").textContent = `Total to pay: ${total} ${currency}`;
+
+    document.getElementById("payBtn").onclick = async () => {
+      const payload = {
+        amount: total,
+        currency,
+        cardName: cardName.value,
+        cardNumber: cardNumber.value,
+      };
+      const res = await fetch(`${API_BASE}/api/payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const j = await res.json();
+      if (j.status === "SUCCESS") {
+        localStorage.removeItem("selectedOffer");
+        document.getElementById("msg").innerHTML = `
+          <p style="color:green;">✅ Payment successful!</p>
+          <p>Payment ID: ${j.paymentId}</p>
+          <button onclick="window.location.href='index.html'">Back to Search</button>
+        `;
+      } else {
+        document.getElementById("msg").innerHTML = `<p style="color:red;">Payment failed</p>`;
+      }
+    };
+  </script>
+</body>
+</html>
