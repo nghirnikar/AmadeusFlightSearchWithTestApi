@@ -16,7 +16,7 @@ let lastResults = [];
 let selectedOffer = null;
 
 // ===============================
-// TRIP TYPE TOGGLE (ONE-WAY / ROUND-TRIP)
+// TRIP TYPE SWITCH
 // ===============================
 document.querySelectorAll("input[name='tripType']").forEach(radio => {
   radio.addEventListener("change", () => {
@@ -28,7 +28,7 @@ document.querySelectorAll("input[name='tripType']").forEach(radio => {
 document.getElementById("returnField").style.display = "none";
 
 // ===============================
-// AUTOCOMPLETE (AIRPORT / CITY)
+// AUTOCOMPLETE
 // ===============================
 async function autocomplete(inputEl, listId) {
   const list = document.getElementById(listId);
@@ -113,7 +113,7 @@ document.getElementById("searchBtn").addEventListener("click", async (e) => {
 });
 
 // ===============================
-// RENDER SEARCH RESULTS
+// DISPLAY RESULTS
 // ===============================
 function renderResults(data) {
   lastResults = data;
@@ -143,7 +143,7 @@ function renderResults(data) {
 }
 
 // ===============================
-// HANDLE "SELECT" CLICK → REDIRECT TO NEXT PAGE
+// SELECT OFFER → NEW PAGE
 // ===============================
 document.addEventListener("click", (e) => {
   if (e.target.classList.contains("select-btn")) {
@@ -155,5 +155,5 @@ document.addEventListener("click", (e) => {
 function selectOffer(index) {
   selectedOffer = lastResults[index];
   localStorage.setItem("selectedOffer", JSON.stringify(selectedOffer));
-  window.location.href = "flight.html"; // redirect to next page
+  window.location.href = "flight.html"; // redirect to new page
 }
