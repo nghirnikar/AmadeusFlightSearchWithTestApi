@@ -1,74 +1,79 @@
 // chatbot.js
 function createChatbot() {
-  // --- Create main chat container ---
-  const chatContainer = document.createElement("div");
-  chatContainer.id = "chat-container";
-  chatContainer.innerHTML = `
+  // Create floating chat button 💬
+  const chatButton = document.createElement("div");
+  chatButton.id = "chat-button";
+  chatButton.innerHTML = "💬";
+  chatButton.style = `
+    position:fixed; bottom:25px; right:25px;
+    width:60px; height:60px; background:#007bff;
+    color:white; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:28px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.3);
+    z-index:9999;
+  `;
+  document.body.appendChild(chatButton);
+
+  // Create chat window (hidden by default)
+  const chatWindow = document.createElement("div");
+  chatWindow.id = "chat-window";
+  chatWindow.innerHTML = `
     <div id="chat-header" style="
-      background:#007bff; color:white; padding:10px; cursor:pointer;
-      display:flex; align-items:center; justify-content:space-between;
-      border-top-left-radius:10px; border-top-right-radius:10px;">
-      <span>💬 AirBooking Assistant</span>
-      <span id="chat-toggle" style="font-weight:bold;">−</span>
+      background:#007bff; color:white; padding:10px;
+      border-top-left-radius:10px; border-top-right-radius:10px;
+      display:flex; justify-content:space-between; align-items:center;">
+      <span>AirBooking Assistant</span>
+      <button id="chat-close" style="
+        background:none; border:none; color:white; font-size:20px; cursor:pointer;">×</button>
     </div>
-    <div id="chat-body" style="
-      display:flex; flex-direction:column; height:370px; background:white;">
-      <div id="chat-messages" style="
-        flex:1; padding:10px; overflow-y:auto; font-family:Arial,sans-serif;
-        font-size:14px;"></div>
+    <div id="chat-body" style="display:flex; flex-direction:column; height:360px; background:white;">
+      <div id="chat-messages" style="flex:1; padding:10px; overflow-y:auto; font-family:Arial; font-size:14px;"></div>
       <div style="display:flex; border-top:1px solid #ddd;">
-        <input id="chat-input" placeholder="Type your message..."
-          style="flex:1; border:none; padding:10px; outline:none;">
-        <button id="chat-send" style="
-          background:#007bff; color:white; border:none; padding:10px 15px;">Send</button>
+        <input id="chat-input" placeholder="Type a message..." style="flex:1; border:none; padding:10px; outline:none;">
+        <button id="chat-send" style="background:#007bff; color:white; border:none; padding:10px 15px;">Send</button>
       </div>
     </div>
   `;
-  chatContainer.style = `
-    position:fixed; bottom:20px; right:20px; width:320px; height:420px;
-    border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); overflow:hidden;
-    font-family:Arial,sans-serif; z-index:9999;
+  chatWindow.style = `
+    position:fixed; bottom:90px; right:25px; width:320px; height:420px;
+    border-radius:10px; box-shadow:0 0 15px rgba(0,0,0,0.3);
+    overflow:hidden; font-family:Arial,sans-serif;
+    display:none; z-index:9999;
   `;
-  document.body.appendChild(chatContainer);
+  document.body.appendChild(chatWindow);
 
-  const messages = document.getElementById("chat-messages");
-  const input = document.getElementById("chat-input");
+  // Elements
+  const closeBtn = document.getElementById("chat-close");
   const sendBtn = document.getElementById("chat-send");
-  const header = document.getElementById("chat-header");
-  const chatBody = document.getElementById("chat-body");
-  const toggle = document.getElementById("chat-toggle");
+  const input = document.getElementById("chat-input");
+  const messages = document.getElementById("chat-messages");
 
-  // --- Toggle (minimize/maximize) ---
-  header.addEventListener("click", () => {
-    if (chatBody.style.display === "none") {
-      chatBody.style.display = "flex";
-      toggle.textContent = "−";
-    } else {
-      chatBody.style.display = "none";
-      toggle.textContent = "+";
-    }
-  });
+  // Toggle open/close
+  chatButton.onclick = () => {
+    chatWindow.style.display = "block";
+    chatButton.style.display = "none";
+  };
+  closeBtn.onclick = () => {
+    chatWindow.style.display = "none";
+    chatButton.style.display = "flex";
+  };
 
-  // --- Message send logic ---
+  // Send message logic
   async function sendMessage() {
     const msg = input.value.trim();
     if (!msg) return;
     messages.innerHTML += `<div><b>You:</b> ${msg}</div>`;
     input.value = "";
+    messages.scrollTop = messages.scrollHeight;
 
-    const res = await fetch(
-      "https://api.monkedev.com/fun/chat?msg=" + encodeURIComponent(msg)
-    );
+    const res = await fetch(`https://api.monkedev.com/fun/chat?msg=${encodeURIComponent(msg)}`);
     const data = await res.json();
-
     messages.innerHTML += `<div><b>Bot:</b> ${data.response || "I'm thinking..."}</div>`;
     messages.scrollTop = messages.scrollHeight;
   }
 
   sendBtn.onclick = sendMessage;
-  input.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") sendMessage();
-  });
+  input.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
 }
 
 window.addEventListener("load", createChatbot);
