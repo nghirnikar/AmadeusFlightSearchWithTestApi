@@ -66,7 +66,7 @@
       margin-bottom: 5px;
     }
 
-    .field input {
+    .field input, select {
       width: 100%;
       padding: 12px;
       border: 1px solid #ccc;
@@ -177,6 +177,11 @@
       margin-top: 20px;
     }
 
+    #extra-options {
+      display: none;
+      margin-top: 15px;
+    }
+
     @media(max-width:650px){
       .grid{grid-template-columns:1fr;}
       .passenger-grid{grid-template-columns:1fr;}
@@ -186,8 +191,8 @@
 <body>
 
   <div class="container">
-    <h1><Amadeus Flight Search With Test API</</h1>
-    <p class="subtitle">Fly anywhere. Fly everywhere.Project by NikhilG</p>
+    <h1>Amadeus Flight Search With Test API</h1>
+    <p class="subtitle">Fly anywhere. Fly everywhere. Project by NikhilG</p>
 
     <div class="trip-type">
       <label class="radio">
@@ -245,7 +250,24 @@
       </div>
     </div>
 
-    <div class="more-options">More options: Class of travel, Airline preference</div>
+    <div class="more-options" onclick="toggleExtraOptions()">More options: Class of travel, Airline preference</div>
+
+    <div id="extra-options" class="grid">
+      <div class="field">
+        <label for="travelClass">Class of Travel</label>
+        <select id="travelClass">
+          <option value="">Any</option>
+          <option value="ECONOMY">Economy</option>
+          <option value="PREMIUM_ECONOMY">Premium Economy</option>
+          <option value="BUSINESS">Business</option>
+          <option value="FIRST">First</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="preferredAirline">Preferred Airline (IATA Code)</label>
+        <input id="preferredAirline" placeholder="e.g. EK, QR, LH" />
+      </div>
+    </div>
 
     <button class="search-btn" id="searchBtn">Search flights</button>
 
@@ -254,13 +276,13 @@
     <div id="preview"></div>
   </div>
 
+  <script>
+    function toggleExtraOptions() {
+      const section = document.getElementById("extra-options");
+      section.style.display = section.style.display === "none" ? "grid" : "none";
+    }
+  </script>
   <script src="script.js"></script>
   <script src="chatbot.js"></script>
 </body>
 </html>
-
-</body>
-</html>
-
-
-
